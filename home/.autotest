@@ -1,0 +1,36 @@
+require 'autotest/redgreen'
+require 'autotest/timestamp'
+require 'autotest/rails'
+
+# Autotest.add_hook :initialize do |autotest|
+#   if autotest.is_a? Autotest::Rails
+#     autotest.spec_command = 'ruby script/spec --options spec/spec.opts' if File.exist? 'script/spec'
+#   end  
+# end
+
+
+module Autotest::Growl
+  def self.growl title, msg, img, pri=0, stick=""
+    # system "growlnotify -n autotest --image #{img} -p #{pri} -m '#{msg}' #{title} #{stick}"
+    system "osascript ~/Library/Scripts/growlNotify.applescript '#{title}' '#{msg}' '#{img}' '#{pri}'"
+  end
+  
+  Autotest.add_hook :initialize do |at|
+    unless ARGV.empty?
+      at.find_directories = ARGV.length == 1 ? ["spec/#{ARGV.first}","app/#{ARGV.first}"] : ARGV.dup
+    end
+  end
+  
+  Autotest.add_hook :red do |at|
+    errors = at.files_to_test.map { |k, v| "#{k}:\n #{v.join("\n ")}"}.join("\n\n")
+    #failed_tests = at.files_to_test.inject(0){ |s,a| k,v = a; s + v.size}
+    growl "Tests failed:", "#{errors}", '~/.autotest_images/fail.png', 2
+  end
+ 
+  Autotest.add_hook :green do |at|
+    res = at.results.scan(/Finished.*failures/m).to_s.gsub(/\e\[32m/,'')
+    growl "Test Results", "#{res}", '~/.autotest_images/pass.png'
+  end
+  
+end
+
