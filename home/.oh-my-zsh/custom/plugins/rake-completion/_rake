@@ -1,0 +1,9 @@
+#compdef rake
+
+if [[ -f Rakefile ]]; then
+  sum=`md5 -q Rakefile **/*.rake | md5`
+  if [[ ! -f .rake_tasks.$sum~ ]]; then
+    rake -s --tasks | cut -d ' ' -f 2 > .rake_tasks.$sum~
+  fi
+  compadd $(cat .rake_tasks.$sum~)
+fi
