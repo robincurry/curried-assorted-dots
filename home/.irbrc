@@ -12,18 +12,18 @@ class Object
 end
 
 ANSI = {}
-ANSI[:RESET]     = "\e[0m"
-ANSI[:BOLD]      = "\e[1m"
-ANSI[:UNDERLINE] = "\e[4m"
-ANSI[:LGRAY]     = "\e[0;37m"
-ANSI[:GRAY]      = "\e[1;30m"
-ANSI[:RED]       = "\e[31m"
-ANSI[:GREEN]     = "\e[32m"
-ANSI[:YELLOW]    = "\e[33m"
-ANSI[:BLUE]      = "\e[34m"
-ANSI[:MAGENTA]   = "\e[35m"
-ANSI[:CYAN]      = "\e[36m"
-ANSI[:WHITE]     = "\e[37m"
+ANSI[:RESET]     = "\001\e[0m\002"
+ANSI[:BOLD]      = "\001\e[1m\002"
+ANSI[:UNDERLINE] = "\001\e[4m\002"
+ANSI[:LGRAY]     = "\001\e[0;37m\002"
+ANSI[:GRAY]      = "\001\e[1;30m\002"
+ANSI[:RED]       = "\001\e[31m\002"
+ANSI[:GREEN]     = "\001\e[32m\002"
+ANSI[:YELLOW]    = "\001\e[33m\002"
+ANSI[:BLUE]      = "\001\e[34m\002"
+ANSI[:MAGENTA]   = "\001\e[35m\002"
+ANSI[:CYAN]      = "\001\e[36m\002"
+ANSI[:WHITE]     = "\001\e[37m\002"
 
 # Build a simple colorful IRB prompt
 IRB.conf[:PROMPT][:SIMPLE_COLOR] = {
@@ -35,6 +35,18 @@ IRB.conf[:PROMPT][:SIMPLE_COLOR] = {
   :AUTO_INDENT => true }
 IRB.conf[:PROMPT_MODE] = :SIMPLE_COLOR
 
+def show_console_extension_on(name)
+  $console_extensions << "#{ANSI[:GREEN]}#{name}#{ANSI[:RESET]}"
+end
+
+def show_console_extension_off(name)
+  $console_extensions << "#{ANSI[:LGRAY]}#{name}#{ANSI[:RESET]}"
+end
+
+def show_console_extension_load_error(name)
+  $console_extensions << "#{ANSI[:RED]}#{name}#{ANSI[:RESET]}"
+end
+
 # Loading extensions of the console. This is wrapped
 # because some might not be included in your Gemfile
 # and errors will be raised
@@ -42,14 +54,22 @@ def extend_console(name, care = true, required = true)
   if care
     require name if required
     yield if block_given?
-    $console_extensions << "#{ANSI[:GREEN]}#{name}#{ANSI[:RESET]}"
+    show_console_extension_on(name)
   else
-    $console_extensions << "#{ANSI[:GRAY]}#{name}#{ANSI[:RESET]}"
+    show_console_extension_off(name)
   end
 rescue LoadError
-  $console_extensions << "#{ANSI[:RED]}#{name}#{ANSI[:RESET]}"
+  show_console_extension_load_error(name)
 end
 $console_extensions = []
+
+begin
+  Readline.vi_editing_mode unless Readline.vi_editing_mode?
+  show_console_extension_on("vi")
+rescue NotImplementedError
+  show_console_extension_load_error("vi")
+end
+
 
 # Wirble is a gem that handles coloring the IRB
 # output and history
@@ -124,6 +144,10 @@ extend_console 'pm', true, false do
 end
 
 extend_console 'interactive_editor' do
+  # no configuration needed
+end
+
+extend_console 'pry-editline' do
   # no configuration needed
 end
 
